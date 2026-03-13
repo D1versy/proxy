@@ -1,98 +1,111 @@
 # Forward Proxy Server
 
-Простой HTTP/HTTPS forward proxy сервер на Python (stdlib, без внешних зависимостей).
-Предназначен для использования в локальной сети — например, чтобы направлять трафик
-другого приложения через машину с нужным IP-адресом.
+Simple HTTP/HTTPS forward proxy server in Python (stdlib only, no external dependencies).
+Designed for use in local networks — e.g., to route traffic from another application
+through a machine with a specific IP address.
 
 ---
 
-## Возможности
+## Features
 
-- **HTTP proxy** — проксирование GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH запросов
-- **HTTPS CONNECT tunnel** — прозрачное туннелирование TLS-соединений
-- **Многопоточность** — каждое входящее соединение обрабатывается в отдельном потоке
-- **Конфигурация через переменные окружения**
-- **Логирование** — timestamp, метод, целевой хост, HTTP-статус
-- **Graceful shutdown** — корректное завершение по `Ctrl+C` / `SIGTERM`
-- **Docker-ready** — `Dockerfile` + `docker-compose.yml` в комплекте
+- **HTTP proxy** — proxying GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH requests
+- **HTTPS CONNECT tunnel** — transparent tunneling of TLS connections
+- **Multithreading** — each incoming connection is handled in a separate thread
+- **Configuration via environment variables**
+- **Logging** — timestamp, method, target host, HTTP status
+- **Graceful shutdown** — clean termination on `Ctrl+C` / `SIGTERM`
+- **Docker-ready** — `Dockerfile` + `docker-compose.yml` included
+- **Railway-ready** — `railway.toml` included for one-click deploy
 
 ---
 
-## Быстрый старт
+## Quick Start
 
-### Вариант 1: Docker (рекомендуется)
+### Option 1: Docker (recommended)
 
 ```bash
-# Клонировать репозиторий
+# Clone the repository
 git clone <repo-url> && cd proxy
 
-# (опционально) скопировать и отредактировать .env
+# (optional) copy and edit .env
 cp .env.example .env
 
-# Запустить
+# Start
 docker compose up -d --build
 ```
 
-Прокси будет доступен на порту `1111` (или на том, что указан в `PROXY_PORT`).
+The proxy will be available on port `1111` (or whatever is set in `PROXY_PORT`).
 
-### Вариант 2: Локально (без Docker)
+### Option 2: Run locally (no Docker)
 
 ```bash
 python3 proxy_server.py
 ```
 
-Или с кастомным портом:
+Or with a custom port:
 
 ```bash
 PROXY_PORT=2222 python3 proxy_server.py
 ```
 
-### Вариант 3: Windows Server (PowerShell)
+### Option 3: Windows Server (PowerShell)
 
-На Windows без Docker — достаточно установленного Python 3.
+On Windows without Docker — only Python 3 is required.
 
 ```powershell
-# Запуск с настройками по умолчанию (порт 1111)
+# Start with default settings (port 1111)
 .\start_proxy.ps1
 
-# Кастомный порт
+# Custom port
 .\start_proxy.ps1 -Port 2222
 
-# Без логирования
+# Disable logging
 .\start_proxy.ps1 -Port 1111 -NoLog
 ```
 
-Или без скрипта, напрямую:
+Or without the script:
 
 ```powershell
 $env:PROXY_PORT = "1111"
 python proxy_server.py
 ```
 
-> **Важно:** если Windows Firewall блокирует входящие подключения, нужно добавить правило:
+> **Note:** if Windows Firewall blocks incoming connections, add a rule:
 > ```powershell
 > New-NetFirewallRule -DisplayName "Forward Proxy" -Direction Inbound -Protocol TCP -LocalPort 1111 -Action Allow
 > ```
 
+### Option 4: Railway
+
+1. Push this repo to GitHub
+2. In Railway dashboard: **New Project → Deploy from GitHub repo**
+3. Go to **Settings → Networking → TCP Proxy** and enable it
+4. Set variable: `PROXY_PORT` = `${{PORT}}`
+5. Use the provided TCP address in your client:
+
+```env
+INSTAGRAM_PROXY=http://region.proxy.rlwy.net:12345
+```
+
 ---
 
-## Конфигурация
+## Configuration
 
-Все настройки задаются через переменные окружения:
+All settings are controlled via environment variables:
 
-| Переменная   | По умолчанию | Описание                                      |
-|-------------|-------------|-----------------------------------------------|
-| `PROXY_PORT` | `1111`      | Порт, на котором слушает прокси               |
-| `PROXY_BIND` | `0.0.0.0`  | Адрес привязки (интерфейс)                    |
-| `PROXY_LOG`  | `true`      | Логирование запросов в stdout (`true`/`false`) |
+| Variable     | Default   | Description                                    |
+|-------------|-----------|------------------------------------------------|
+| `PROXY_PORT` | `1111`    | Port the proxy listens on                      |
+| `PROXY_BIND` | `0.0.0.0` | Bind address (network interface)              |
+| `PROXY_LOG`  | `true`    | Log requests to stdout (`true`/`false`)        |
 
 ---
 
-## Использование в клиентском проекте
+## Usage in a Client Project
 
-### Шаг 1: Узнать IP прокси-сервера
+### Step 1: Find the proxy server IP
 
-На машине, где запущен прокси:
+On the machine running the proxy:
 
 ```bash
 # Linux
@@ -102,17 +115,17 @@ hostname -I
 ipconfig getifaddr en0
 ```
 
-Допустим, IP — `192.168.1.50`.
+Let's say the IP is `192.168.1.50`.
 
-### Шаг 2: Настроить клиентский проект
+### Step 2: Configure the client project
 
-В `.env` файле вашего проекта добавьте:
+In the `.env` file of your project, add:
 
 ```env
 INSTAGRAM_PROXY=http://192.168.1.50:1111
 ```
 
-### Шаг 3: Использовать в коде (Python requests)
+### Step 3: Use in code (Python requests)
 
 ```python
 import os
@@ -126,50 +139,50 @@ session.proxies = {
     "https": proxy_url,
 }
 
-# HTTP-запрос через прокси
+# HTTP request through proxy
 response = session.get("http://httpbin.org/ip")
 print(response.json())
 
-# HTTPS-запрос через прокси (CONNECT tunnel)
+# HTTPS request through proxy (CONNECT tunnel)
 response = session.get("https://api.instagram.com/")
 print(response.status_code)
 ```
 
 ---
 
-## Примеры `.env` для клиентского проекта
+## Client `.env` Examples
 
 ```env
-# Прокси на другой машине в локальной сети
+# Proxy on another machine in the local network
 INSTAGRAM_PROXY=http://192.168.1.50:1111
 
-# Прокси на той же машине (для тестирования)
+# Proxy on the same machine (for testing)
 INSTAGRAM_PROXY=http://127.0.0.1:1111
 
-# Прокси по hostname
+# Proxy by hostname
 INSTAGRAM_PROXY=http://my-proxy-server:1111
 
-# Прокси на нестандартном порту
+# Proxy on a custom port
 INSTAGRAM_PROXY=http://192.168.1.50:2222
 ```
 
 ---
 
-## Проверка работоспособности
+## Verifying the Proxy Works
 
-### С помощью curl
+### Using curl
 
 ```bash
-# HTTP через прокси
+# HTTP through proxy
 curl -x http://localhost:1111 http://httpbin.org/ip
 
-# HTTPS через прокси
+# HTTPS through proxy
 curl -x http://localhost:1111 https://httpbin.org/ip
 ```
 
-Если всё работает, оба запроса вернут JSON с IP-адресом прокси-сервера.
+If everything works, both requests will return a JSON with the proxy server's IP address.
 
-### С помощью Python
+### Using Python
 
 ```python
 import requests
@@ -180,9 +193,9 @@ print(requests.get("https://httpbin.org/ip", proxies=proxies).json())
 
 ---
 
-## Логи
+## Logs
 
-При `PROXY_LOG=true` (по умолчанию) в stdout выводятся записи вида:
+When `PROXY_LOG=true` (default), stdout will show entries like:
 
 ```
 2026-03-13 12:00:01  Proxy listening on 0.0.0.0:1111
@@ -192,16 +205,16 @@ print(requests.get("https://httpbin.org/ip", proxies=proxies).json())
 
 ---
 
-## Docker Compose в составе другого проекта
+## Using as a Service in Another Docker Compose Project
 
-Если вы хотите добавить прокси как сервис в `docker-compose.yml` другого проекта:
+If you want to add the proxy as a service in another project's `docker-compose.yml`:
 
 ```yaml
 services:
-  # ... ваши сервисы ...
+  # ... your services ...
 
   proxy:
-    build: ./proxy          # путь к директории с proxy_server.py и Dockerfile
+    build: ./proxy          # path to the directory with proxy_server.py and Dockerfile
     container_name: forward-proxy
     restart: unless-stopped
     ports:
@@ -211,36 +224,36 @@ services:
       - PROXY_LOG=true
 ```
 
-Тогда из других контейнеров в той же Docker-сети прокси доступен по адресу:
+From other containers in the same Docker network, the proxy is available at:
 
 ```env
 INSTAGRAM_PROXY=http://proxy:1111
 ```
 
-(где `proxy` — имя сервиса в docker-compose)
+(where `proxy` is the service name in docker-compose)
 
 ---
 
-## Сетевой доступ из Docker
+## Network Access from Docker
 
-Если прокси запущен в Docker, а клиент — на хост-машине:
+If the proxy runs in Docker and the client is on the host machine:
 
 ```env
 INSTAGRAM_PROXY=http://localhost:1111
 ```
 
-Если и прокси, и клиент — в Docker (одна docker-compose сеть):
+If both the proxy and client are in Docker (same docker-compose network):
 
 ```env
 INSTAGRAM_PROXY=http://forward-proxy:1111
-# или по имени сервиса:
+# or by service name:
 INSTAGRAM_PROXY=http://proxy:1111
 ```
 
-Если прокси в Docker, а клиент — на другой машине в сети:
+If the proxy is in Docker and the client is on another machine in the network:
 
 ```env
-# Используйте IP хост-машины, на которой запущен Docker
+# Use the IP of the host machine running Docker
 INSTAGRAM_PROXY=http://192.168.1.50:1111
 ```
 
@@ -248,37 +261,37 @@ INSTAGRAM_PROXY=http://192.168.1.50:1111
 
 ## Troubleshooting
 
-### Прокси не отвечает
+### Proxy not responding
 
-1. Проверьте, что контейнер запущен: `docker compose ps`
-2. Проверьте логи: `docker compose logs proxy`
-3. Убедитесь, что порт открыт: `curl http://localhost:1111` (ожидается ошибка 400 — это нормально, значит прокси работает)
+1. Check that the container is running: `docker compose ps`
+2. Check logs: `docker compose logs proxy`
+3. Verify the port is open: `curl http://localhost:1111` (expect a 400 error — that's normal, it means the proxy is working)
 
-### Connection refused с другой машины
+### Connection refused from another machine
 
-1. Убедитесь, что файрвол не блокирует порт `1111`
-2. Проверьте, что `PROXY_BIND=0.0.0.0` (не `127.0.0.1`)
-3. Проверьте доступность: `telnet <proxy-host> 1111`
+1. Make sure the firewall is not blocking port `1111`
+2. Check that `PROXY_BIND=0.0.0.0` (not `127.0.0.1`)
+3. Test connectivity: `telnet <proxy-host> 1111`
 
-### Таймауты
+### Timeouts
 
-- По умолчанию таймаут соединений — 60 секунд
-- Если целевой сервер не отвечает дольше 60 секунд, соединение будет закрыто
-- Для длительных соединений можно изменить `TIMEOUT` в `proxy_server.py`
+- Default connection timeout is 60 seconds
+- If the target server doesn't respond within 60 seconds, the connection will be closed
+- For long-lived connections, you can change `TIMEOUT` in `proxy_server.py`
 
-### Docker: порт уже занят
+### Docker: port already in use
 
 ```bash
-# Посмотреть, что занимает порт
+# Find what's using the port
 lsof -i :1111
 
-# Использовать другой порт
+# Use a different port
 PROXY_PORT=2222 docker compose up -d --build
 ```
 
 ---
 
-## Архитектура
+## Architecture
 
 ```
 ┌──────────┐      HTTP GET       ┌─────────────┐      HTTP GET       ┌──────────────┐
@@ -295,5 +308,5 @@ PROXY_PORT=2222 docker compose up -d --build
 └──────────┘                      └─────────────┘                     └──────────────┘
 ```
 
-- **HTTP proxy**: клиент отправляет полный URL в запросе → прокси разбирает URL, подключается к origin серверу, пересылает запрос и ответ
-- **HTTPS CONNECT**: клиент отправляет `CONNECT host:443` → прокси устанавливает TCP-соединение с целевым сервером → отвечает `200` → запускает двунаправленный relay (клиент и сервер общаются напрямую через tunnel)
+- **HTTP proxy**: the client sends a full URL in the request → the proxy parses the URL, connects to the origin server, forwards the request and response
+- **HTTPS CONNECT**: the client sends `CONNECT host:443` → the proxy establishes a TCP connection to the target server → responds with `200` → starts a bidirectional relay (client and server communicate directly through the tunnel)
