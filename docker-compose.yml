@@ -1,0 +1,11 @@
+services:
+  proxy:
+    build: .
+    container_name: forward-proxy
+    restart: unless-stopped
+    ports:
+      - "${PROXY_PORT:-1111}:${PROXY_PORT:-1111}"
+    environment:
+      - PROXY_PORT=${PROXY_PORT:-1111}
+      - PROXY_BIND=0.0.0.0
+      - PROXY_LOG=${PROXY_LOG:-true}
