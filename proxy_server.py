@@ -25,9 +25,9 @@ from http.server import BaseHTTPRequestHandler
 # Configuration
 # ---------------------------------------------------------------------------
 
-PROXY_PORT = int(os.environ.get("PROXY_PORT", "1111"))
-PROXY_BIND = os.environ.get("PROXY_BIND", "0.0.0.0")
-PROXY_LOG = os.environ.get("PROXY_LOG", "true").lower() in ("true", "1", "yes")
+PROXY_PORT = int(os.environ.get("PROXY_PORT") or os.environ.get("PORT") or "1111")
+PROXY_BIND = os.environ.get("PROXY_BIND") or "0.0.0.0"
+PROXY_LOG = (os.environ.get("PROXY_LOG") or "true").lower() in ("true", "1", "yes")
 
 TIMEOUT = 60  # seconds
 BUFFER_SIZE = 65536
